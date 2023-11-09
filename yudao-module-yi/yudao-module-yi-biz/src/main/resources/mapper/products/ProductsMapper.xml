@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.yi.dal.mysql.products.ProductsMapper">
+
+    <!--
+        一般情况下，尽可能使用 Mapper 进行 CRUD 增删改查即可。
+        无法满足的场景，例如说多表关联查询，才使用 XML 编写 SQL。
+        代码生成器暂时只生成 Mapper XML 文件本身，更多推荐 MybatisX 快速开发插件来生成查询。
+        文档可见：https://www.iocoder.cn/MyBatis/x-plugins/
+     -->
+
+
+    <select id="queryAppProductsPage" resultType="cn.iocoder.yudao.module.yi.controller.app.vo.AppProductsListRespVO">
+        select yp.id,
+               yp.product_name,
+               yp.org_icon_url,
+               yp.product_term_month,
+               yp.investment_area,
+               yp.invest_region_province,
+               yp.dxpb,
+               yp.security_rate,
+               yp.create_time,
+               yp.update_time,
+<!--               group_concat(ypl.label_value, ''),-->
+               max(ypi.interest_rate)         as maxInterest,
+               min(ypi.amount_start)          as minAmountStart,
+               group_concat(distinct ypcl.label_value, '') as customLabels
+        from yi_products yp
+                 left join yi_product_label ypl on yp.id = ypl.product_id
+                 left join yi_product_interest ypi on yp.id = ypi.product_id
+                 left join yi_product_custom_label ypcl on yp.id = ypcl.product_id
+        <where>
+            <if test="reqVo != null">
+                <if test="reqVo.productType != null and reqVo.productType != ''">
+                    and yp.product_type = #{reqVo.productType}
+                </if>
+                <if test="reqVo.productName != null and reqVo.productName != ''">
+                    and yp.product_name like concat('%', #{reqVo.productName,jdbcType=VARCHAR}, '%')
+                </if>
+                <if test="reqVo.productLabels != null and reqVo.productLabels.length > 0">
+                    and ypl.label_key in
+                    <foreach collection="reqVo.productLabels" item="item" open="(" close=")" separator=",">
+                        #{item,jdbcType=VARCHAR}
+                    </foreach>
+                </if>
+                <if test="reqVo.profitInterest != null">
+                    <if test="reqVo.profitInterest.length == 1">
+                        and ypi.interest_rate <![CDATA[ >= ]]> #{reqVo.profitInterest[0]}
+                    </if>
+                    <if test="reqVo.profitInterest.length == 2">
+                        and ypi.interest_rate <![CDATA[ >= ]]> #{reqVo.profitInterest[0]}
+                        and ypi.interest_rate <![CDATA[ <= ]]> #{reqVo.profitInterest[1]}
+                    </if>
+                </if>
+                <if test="reqVo.productTermMonth != null and reqVo.productTermMonth.length == 2">
+                    and yp.product_term_month <![CDATA[ >= ]]> #{reqVo.productTermMonth[0]}
+                    and yp.product_term_month <![CDATA[ <= ]]> #{reqVo.productTermMonth[1]}
+                </if>
+                <if test="reqVo.investmentArea != null and reqVo.investmentArea != ''">
+                    and yp.investment_area = #{reqVo.investmentArea}
+                </if>
+                <if test="reqVo.securityRate != null">
+                    and yp.security_rate = #{reqVo.securityRate}
+                </if>
+                <if test="reqVo.interestPaymentMethod != null and reqVo.interestPaymentMethod != ''">
+                    and yp.interest_payment_method = #{reqVo.interestPaymentMethod}
+                </if>
+                <if test="reqVo.investRegionProvince != null and reqVo.investRegionProvince != ''">
+                    and yp.invest_region_province = #{reqVo.investRegionProvince,jdbcType=VARCHAR}
+                </if>
+                <if test="reqVo.dxpb != null and reqVo.dxpb != ''">
+                    and yp.dxpb = #{reqVo.dxpb,jdbcType=VARCHAR}
+                </if>
+            </if>
+        </where>
+        group by yp.id, yp.product_name, yp.org_icon_url, yp.product_term_month, yp.investment_area,
+                 yp.invest_region_province, yp.dxpb, yp.security_rate, yp.create_time, yp.update_time
+
+<!--        <if test="reqVo.sortField != null and reqVo.sortOrder != null">-->
+<!--            <choose>-->
+<!--                <when test="reqVo.sortField == 'maxInterest'">-->
+<!--                    order by maxInterest ${reqVo.sortOrder}-->
+<!--                </when>-->
+<!--                <when test="reqVo.sortField == 'security_rate'">-->
+<!--                    order by security_rate ${reqVo.sortOrder}-->
+<!--                </when>-->
+<!--                <when test="reqVo.sortField == 'create_time'">-->
+<!--                    order by create_time ${reqVo.sortOrder}-->
+<!--                </when>-->
+<!--                <otherwise>-->
+<!--                    order by yp.update_time desc-->
+<!--                </otherwise>-->
+<!--            </choose>-->
+<!--        </if>-->
+    </select>
+
+    <select id="getProductsCategoryCont"
+            resultType="cn.iocoder.yudao.module.yi.controller.app.vo.AppProductsCategoryCountVo">
+        select yp.product_type, count(*) count
+        from yi_products yp
+        group by yp.product_type
+    </select>
+</mapper>
